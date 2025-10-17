@@ -28,7 +28,7 @@ jobs:
           pip install -r windows-build-requirements.txt
           pip install pyinstaller
 
-      # Optional: Tesseract is not needed to BUILD; only needed at RUNTIME.
+      # Optional: Tesseract is runtime-only. Install best-effort; don't fail if PATH isn't refreshed.
       - name: Install Tesseract OCR (best-effort)
         shell: pwsh
         run: |
@@ -41,6 +41,7 @@ jobs:
           }
 
       - name: Build EXE with PyInstaller
+        # bundle Streamlit's metadata and its submodules to avoid PackageNotFoundError
         run: pyinstaller --noconfirm app1.py --name EvidenceSynthesisApp --windowed --copy-metadata streamlit --copy-metadata altair --copy-metadata blinker --copy-metadata protobuf --copy-metadata watchdog --copy-metadata packaging --copy-metadata validators --collect-submodules streamlit
 
       - name: Upload artifact
