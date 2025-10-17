@@ -32,12 +32,16 @@ jobs:
         shell: pwsh
         run: |
           choco install -y tesseract
-          # Optional for pdf2image:
+          # Optional if you use pdf2image:
           # choco install -y poppler
 
-      - name: Build executable
+      - name: Build executable (bundle Streamlit metadata)
         run: |
-          pyinstaller --noconfirm app1.spec
+          pyinstaller --noconfirm app1.py ^
+            --name EvidenceSynthesisApp ^
+            --windowed ^
+            --copy-metadata streamlit ^
+            --collect-submodules streamlit
           dir dist
 
       - name: Upload artifact
