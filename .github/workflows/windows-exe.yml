@@ -6,8 +6,8 @@ on:
     paths:
       - 'app1.py'
       - 'app1.spec'
-      - '.github/workflows/windows-exe.yml'
       - 'windows-build-requirements.txt'
+      - '.github/workflows/windows-exe.yml'
 
 jobs:
   build-exe:
@@ -22,27 +22,31 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Upgrade pip and install build deps
         run: |
-          pip install --upgrade pip setuptools wheel
+          python -m pip install --upgrade pip setuptools wheel
+          pip --version
+
+      - name: Install project requirements
+        run: |
           pip install -r windows-build-requirements.txt
           pip install pyinstaller
 
-      - name: Install native tools
+      - name: Install native tools (Tesseract OCR)
         shell: pwsh
         run: |
           choco install -y tesseract
-          # Optional if you use pdf2image:
-          # choco install -y poppler
+          tesseract --version
 
+      # Build with PyInstaller (single line; PowerShell-friendly)
       - name: Build executable (bundle Streamlit metadata)
+        run: pyinstaller --noconfirm app1.py --name EvidenceSynthesisApp --windowed --copy-metadata streamlit --collect-submodules streamlit
+
+      - name: List build output
         run: |
-          pyinstaller --noconfirm app1.py ^
-            --name EvidenceSynthesisApp ^
-            --windowed ^
-            --copy-metadata streamlit ^
-            --collect-submodules streamlit
+          dir
           dir dist
+          dir dist\EvidenceSynthesisApp
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
