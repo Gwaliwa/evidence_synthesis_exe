@@ -10,6 +10,11 @@ from pandas import DataFrame
 import os, sys
 import pytesseract
 
+import shutil, streamlit as st
+if shutil.which("tesseract") is None:
+    st.warning("Tesseract OCR not found. Install it from https://github.com/tesseract-ocr/tesseract or via Chocolatey (choco install tesseract). If you know the full path, set pytesseract.pytesseract.tesseract_cmd to it.")
+
+
 # When running as a PyInstaller exe, files are unpacked under _MEIPASS
 BASE_DIR = getattr(sys, "_MEIPASS", os.path.abspath(os.path.dirname(__file__)))
 
