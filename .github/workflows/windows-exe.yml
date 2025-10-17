@@ -1,0 +1,47 @@
+name: Build Windows EXE
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'app1.py'
+      - 'app1.spec'
+      - '.github/workflows/windows-exe.yml'
+      - 'windows-build-requirements.txt'
+
+jobs:
+  build-exe:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip setuptools wheel
+          pip install -r windows-build-requirements.txt
+          pip install pyinstaller
+
+      - name: Install native tools
+        shell: pwsh
+        run: |
+          choco install -y tesseract
+          # Optional for pdf2image:
+          # choco install -y poppler
+
+      - name: Build executable
+        run: |
+          pyinstaller --noconfirm app1.spec
+          dir dist
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: EvidenceSynthesisApp-windows
+          path: dist/EvidenceSynthesisApp/**
