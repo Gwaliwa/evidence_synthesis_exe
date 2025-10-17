@@ -1,3 +1,70 @@
+# === Auto-guard block (do not edit) ============================================
+import sys, os, shutil
+try:
+    import streamlit as st
+except Exception:
+    st = None
+
+# Start fresh each run
+if st:
+    try:
+        st.cache_data.clear(); st.cache_resource.clear()
+    except Exception:
+        pass
+
+# Safe pandas.concat: avoid "No objects to concatenate" crashes across the app
+try:
+    import pandas as pd
+    if not hasattr(pd, "_original_concat"):
+        pd._original_concat = pd.concat
+        def _safe_concat(objs=None, **kwargs):
+            objs = list(objs or [])
+            cleaned = []
+            for o in objs:
+                try:
+                    if o is None: 
+                        continue
+                    if hasattr(o, "empty"):
+                        if not o.empty:
+                            cleaned.append(o)
+                    else:
+                        cleaned.append(o)
+                except Exception:
+                    continue
+            if not cleaned:
+                return pd.DataFrame()
+            return pd._original_concat(cleaned, **kwargs)
+        pd.concat = _safe_concat
+except Exception:
+    pass
+
+# Tesseract presence check (friendly warning, but optional)
+try:
+    import pytesseract
+    tess_cmd_env = os.environ.get("TESSERACT_CMD")
+    if tess_cmd_env and os.path.exists(tess_cmd_env):
+        pytesseract.pytesseract.tesseract_cmd = tess_cmd_env
+    elif shutil.which("tesseract") is None and st:
+        st.warning("⚠️ Tesseract OCR not found. Install it or set TESSERACT_CMD/pytesseract.pytesseract.tesseract_cmd to full path.")
+except Exception:
+    pass
+
+# pdf2image / Poppler hint
+try:
+    import pdf2image  # noqa
+    if shutil.which("pdftoppm") is None and st:
+        st.info("ℹ️ pdf2image detected but Poppler (`pdftoppm`) not on PATH. Install Poppler if you plan OCR on image-only PDFs.")
+except Exception:
+    pass
+
+def _show_exception(e, context=""):
+    if st:
+        st.error(f"❌ Error {context}: {type(e).__name__}: {e}")
+    else:
+        print(f"[ERROR] {context}: {type(e).__name__}: {e}", file=sys.stderr)
+# === End Auto-guard block =====================================================
+
+
 # app.py
 # Evidence Synthesis (v4.3 AI) — clean PDF-only upload, no samples, fresh-run caching, single status bar.
 
@@ -9,11 +76,6 @@ import pandas as pd
 from pandas import DataFrame
 import os, sys
 import pytesseract
-
-# ---- Minimal safety helper (added) ----
-def safe_concat(frames, **kwargs):
-    frames = [f for f in (frames or []) if f is not None and not getattr(f, "empty", True)]
-    return pd.concat(frames, **kwargs) if frames else pd.DataFrame()
 
 # When running as a PyInstaller exe, files are unpacked under _MEIPASS
 BASE_DIR = getattr(sys, "_MEIPASS", os.path.abspath(os.path.dirname(__file__)))
@@ -778,13 +840,7 @@ status.write("Processing complete.")
 st.success(f"Done. Processed {len(docs)} document(s).")
 
 matrix_df = pd.DataFrame(matrix_rows, columns=["Document"] + DIMENSIONS)
-
-# ---- Minimal fix applied here (was: pd.concat(...)) ----
-evidence_df = safe_concat(evidence_tables, ignore_index=True)
-# (Optional belt-and-suspenders to keep columns even if empty)
-if evidence_df.empty:
-    evidence_df = pd.DataFrame(columns=["Document","Dimension","Evidence (sentence)","Page","Confidence","Method"])
-
+evidence_df = pd.concat(evidence_tables, ignore_index=True)
 diagnostics_df = pd.DataFrame(diagnostics_rows)
 
 # -------- Outputs --------
@@ -914,3 +970,24 @@ with col1:
     )
 with col2:
     st.caption("Need a Word/PPT export? I can add that: gmashaka@unicef.org")
+
+
+# === PyInstaller launcher (do not edit) =======================================
+if __name__ == "__main__":
+    try:
+        # Preferred for Streamlit >= 1.30
+        from streamlit.web.bootstrap import run as st_run
+        import pathlib
+        st_run(str(pathlib.Path(__file__).resolve()), "", [], flag_options={})
+    except Exception:
+        try:
+            import sys as _sys
+            import streamlit.web.cli as stcli
+            _sys.argv = ["streamlit", "run", __file__]
+            _sys.exit(stcli.main())
+        except Exception as e:
+            try:
+                _show_exception(e, context="starting Streamlit")
+            except Exception:
+                raise
+# === End PyInstaller launcher =================================================
