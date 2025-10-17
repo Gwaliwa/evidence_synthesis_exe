@@ -973,17 +973,27 @@ with col2:
 
 
 # === PyInstaller launcher (do not edit) =======================================
+# === PyInstaller launcher (force correct Streamlit port) ======================
 if __name__ == "__main__":
+    import os, pathlib
+    # Nuke generic PORT env (some org setups export PORT=3000)
+    os.environ.pop("PORT", None)
+
+    # Force Streamlit config via env (Streamlit honors STREAMLIT_* vars)
+    os.environ["STREAMLIT_SERVER_PORT"] = "8501"
+    os.environ["STREAMLIT_SERVER_HEADLESS"] = "false"
+    os.environ["STREAMLIT_BROWSER_SERVER_ADDRESS"] = "localhost"
+    os.environ["STREAMLIT_BROWSER_GATHER_USAGE_STATS"] = "false"
+
     try:
         # Preferred for Streamlit >= 1.30
         from streamlit.web.bootstrap import run as st_run
-        import pathlib
-        st_run(str(pathlib.Path(__file__).resolve()), "", [], flag_options={})
+        st_run(str(pathlib.Path(__file__).resolve()), "", ["--server.port=8501"], flag_options={})
     except Exception:
         try:
             import sys as _sys
             import streamlit.web.cli as stcli
-            _sys.argv = ["streamlit", "run", __file__]
+            _sys.argv = ["streamlit", "run", __file__, "--server.port=8501"]
             _sys.exit(stcli.main())
         except Exception as e:
             try:
