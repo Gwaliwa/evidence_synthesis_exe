@@ -903,3 +903,19 @@ with col1:
     )
 with col2:
     st.caption("Need a Word/PPT export? I can add that: gmashaka@unicef.org")
+
+# --- Programmatic launcher so the PyInstaller-built EXE starts Streamlit ---
+if __name__ == "__main__":
+    try:
+        # Streamlit 1.30+ way
+        from streamlit.web.bootstrap import run as st_run
+        import os, sys, pathlib
+        app_path = pathlib.Path(__file__).resolve()
+        # Equivalent to: streamlit run app1.py
+        st_run(str(app_path), "", [], flag_options={})
+    except Exception:
+        # Fallback for older versions
+        import sys as _sys
+        import streamlit.web.cli as stcli
+        _sys.argv = ["streamlit", "run", __file__]
+        _sys.exit(stcli.main())
