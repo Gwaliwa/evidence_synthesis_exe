@@ -14,40 +14,35 @@ jobs:
     runs-on: windows-latest
 
     steps:
+      # Step 1: Checkout your repository
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Step 2: Set up Python 3.11
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Upgrade pip and install build deps
+      # Step 3: Upgrade pip and install build dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          pip --version
-
-      - name: Install project requirements
-        run: |
           pip install -r windows-build-requirements.txt
           pip install pyinstaller
 
-      - name: Install native tools (Tesseract OCR)
+      # Step 4: Install native OCR tools (Tesseract)
+      - name: Install Tesseract OCR
         shell: pwsh
         run: |
           choco install -y tesseract
           tesseract --version
 
-      # Build with PyInstaller (single line; PowerShell-friendly)
-      - name: Build executable (bundle Streamlit metadata)
-        run: pyinstaller --noconfirm app1.py --name EvidenceSynthesisApp --windowed --copy-metadata streamlit --collect-submodules streamlit
+      # Step 5: Build executable with Streamlit metadata
+      - name: Build EXE with PyInstaller
+        run: pyinstaller --noconfirm app1.py --name EvidenceSynthesisApp --windowed --copy-metadata streamlit --copy-metadata altair --copy-metadata blinker --copy-metadata protobuf --copy-metadata watchdog --copy-metadata packaging --copy-metadata validators --collect-submodules streamlit
 
-      - name: List build output
-        run: |
-          dir
-          dir dist
-          dir dist\EvidenceSynthesisApp
-
+      # Step 6: Upload the built EXE as artifact
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
