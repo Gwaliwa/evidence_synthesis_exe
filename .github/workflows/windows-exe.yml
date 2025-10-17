@@ -5,7 +5,6 @@ on:
   push:
     paths:
       - 'app1.py'
-      - 'app1.spec'
       - 'windows-build-requirements.txt'
       - '.github/workflows/windows-exe.yml'
 
@@ -28,7 +27,7 @@ jobs:
           pip install -r windows-build-requirements.txt
           pip install pyinstaller
 
-      # Optional: install Tesseract, but don't fail build if PATH isn't refreshed
+      # Optional: Tesseract is runtime-only; don't fail build if PATH isn't refreshed
       - name: Install Tesseract OCR (best-effort)
         shell: pwsh
         run: |
@@ -40,9 +39,9 @@ jobs:
             Write-Host "Tesseract installed but not in PATH yet; continuing build."
           }
 
-      # Main build step (only copy Streamlit metadata)
+      # Main build step: collect-all streamlit (code + data + metadata) to avoid metadata errors
       - name: Build EXE with PyInstaller
-        run: pyinstaller --noconfirm app1.py --name EvidenceSynthesisApp --windowed --copy-metadata streamlit --collect-submodules streamlit
+        run: pyinstaller --noconfirm app1.py --name EvidenceSynthesisApp --windowed --collect-all streamlit
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
