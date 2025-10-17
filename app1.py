@@ -10,10 +10,10 @@ from pandas import DataFrame
 import os, sys
 import pytesseract
 
-import shutil, streamlit as st
-if shutil.which("tesseract") is None:
-    st.warning("Tesseract OCR not found. Install it from https://github.com/tesseract-ocr/tesseract or via Chocolatey (choco install tesseract). If you know the full path, set pytesseract.pytesseract.tesseract_cmd to it.")
-
+# ---- Minimal safety helper (added) ----
+def safe_concat(frames, **kwargs):
+    frames = [f for f in (frames or []) if f is not None and not getattr(f, "empty", True)]
+    return pd.concat(frames, **kwargs) if frames else pd.DataFrame()
 
 # When running as a PyInstaller exe, files are unpacked under _MEIPASS
 BASE_DIR = getattr(sys, "_MEIPASS", os.path.abspath(os.path.dirname(__file__)))
@@ -778,7 +778,13 @@ status.write("Processing complete.")
 st.success(f"Done. Processed {len(docs)} document(s).")
 
 matrix_df = pd.DataFrame(matrix_rows, columns=["Document"] + DIMENSIONS)
-evidence_df = pd.concat(evidence_tables, ignore_index=True)
+
+# ---- Minimal fix applied here (was: pd.concat(...)) ----
+evidence_df = safe_concat(evidence_tables, ignore_index=True)
+# (Optional belt-and-suspenders to keep columns even if empty)
+if evidence_df.empty:
+    evidence_df = pd.DataFrame(columns=["Document","Dimension","Evidence (sentence)","Page","Confidence","Method"])
+
 diagnostics_df = pd.DataFrame(diagnostics_rows)
 
 # -------- Outputs --------
@@ -908,19 +914,3 @@ with col1:
     )
 with col2:
     st.caption("Need a Word/PPT export? I can add that: gmashaka@unicef.org")
-
-# --- Programmatic launcher so the PyInstaller-built EXE starts Streamlit ---
-if __name__ == "__main__":
-    try:
-        # Streamlit 1.30+ way
-        from streamlit.web.bootstrap import run as st_run
-        import os, sys, pathlib
-        app_path = pathlib.Path(__file__).resolve()
-        # Equivalent to: streamlit run app1.py
-        st_run(str(app_path), "", [], flag_options={})
-    except Exception:
-        # Fallback for older versions
-        import sys as _sys
-        import streamlit.web.cli as stcli
-        _sys.argv = ["streamlit", "run", __file__]
-        _sys.exit(stcli.main())
